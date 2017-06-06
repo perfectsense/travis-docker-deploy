@@ -46,7 +46,7 @@ DOCKER_REPOSITORY my-docker/repository
 MAJOR_VERSION v0.
 
 BASE_IMAGE_REGISTRY_HOST my.base.images.host.com
-BASE_IMAGE_REPOSITORY base=images/repository
+BASE_IMAGE_REPOSITORY base-images/repository
 BASE_IMAGE_MINOR_VERSION v0.7
 ```
 
