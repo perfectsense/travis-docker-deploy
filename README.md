@@ -1,6 +1,6 @@
 # Travis Docker Build Script
 
-This script is used by [Travis CI](https://travis-ci.com/) to continuously build docker containers and push them to the appropriate docker repo.
+This script is used by [Travis CI](https://travis-ci.com/) to continuously build docker containers with [Chef](https://www.chef.io/) and [Packer](https://www.packer.io/).  It will push them to the appropriate docker repo.
 
 It should only build containers for pushes to the master branch and open Pull Requests to the Master branch.  The Master branch will create a new git tag that will use the major version in the `DOCKER_METADATA` file combined with the minor version.  The minor version increments with every new push to the master branch.  It will also create a Docker tag with the Major version, minor version, and travis build number, i.e., v1.2.123.
 
@@ -56,5 +56,30 @@ If the docker repository requires a login, these should be set.
 ```
 DOCKER_BUILDER_USER
 DOCKER_BUILDER_PASSWORD
+```
+
+## PACKER FILE
+
+This script is meant to build containers with packer. The script will set environmental variables to be used by packer.  Your packer file should contain the following elements:
+```
+{
+  "variables" : {
+    "base_image" : "{{env `BASE_IMAGE`}}",
+    "docker_tag" : "{{env `DOCKER_TAG`}}",
+    "docker_repository" : "{{env `FULL_DOCKER_REPOSITORY`}}"
+  },
+  "builders" : [
+    {
+      "image": "{{user `base_image`}}",
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "docker-tag",
+      "repository": "{{user `docker_repository`}}",
+      "tag": "{{user `docker_tag`}}"
+    }
+  ]
+}
 ```
 
