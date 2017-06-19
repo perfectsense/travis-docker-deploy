@@ -132,10 +132,9 @@ if [[ "$TRAVIS_PULL_REQUEST" == "false" &&
     fi
 
     echo "New Minor Version is $new_minor_version"
+    build_container $new_minor_version.$TRAVIS_BUILD_NUMBER
     git tag -a $new_minor_version -m "Tag for version $new_minor_version"
     git push origin tag $new_minor_version -f
-
-    build_container $new_minor_version.$TRAVIS_BUILD_NUMBER
     
 elif [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
     build_container `echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }'`
