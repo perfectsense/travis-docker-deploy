@@ -67,22 +67,22 @@ function build_container() {
     echo "travis_fold:end:calculate-base-image"
 
     echo "travis_fold:start:install-packer"
-    packer_dir=$TRAVIS_BUILD_DIR/tmp-packer
+    packer_dir=$BUILD_DIRECTORY/tmp-packer
     if [[ ! -d $packer_dir ]]; then
         mkdir -p $packer_dir && cd $packer_dir
         wget https://releases.hashicorp.com/packer/1.0.0/packer_1.0.0_linux_amd64.zip
         unzip packer_1.0.0_linux_amd64.zip
-        cd $TRAVIS_BUILD_DIR
+        cd $BUILD_DIRECTORY
     else
        echo "Packer is already installed. Skipping..."
     fi
     echo "travis_fold:end:install-packer"
 
     echo "travis_fold:start:berks-vendor"
-    if [[ -d $TRAVIS_BUILD_DIR/vendor/cookbooks ]]; then
-        rm -rf $TRAVIS_BUILD_DIR/vendor/cookbooks
+    if [[ -d $BUILD_DIRECTORY/vendor/cookbooks ]]; then
+        rm -rf $BUILD_DIRECTORY/vendor/cookbooks
     fi
-    berks vendor $TRAVIS_BUILD_DIR/vendor/cookbooks
+    berks vendor $BUILD_DIRECTORY/vendor/cookbooks
     echo "travis_fold:end:berks-vendor"
 
     docker login $base_registry_host -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
@@ -106,6 +106,9 @@ function build_container() {
 
 echo "Installing Berkshelf"
 gem install berkshelf
+
+echo "Current Working Directory is [ $(pwd) ]"
+export BUILD_DIRECTORY=$(pwd)
 
 set -e -u
 
