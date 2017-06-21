@@ -104,6 +104,9 @@ function build_container() {
     echo "travis_fold:end:docker-push"
 }
 
+echo "Installing Berkshelf"
+gem install berkshelf
+
 set -e -u
 
 major_version=`cat DOCKER_METADATA | grep "MAJOR_VERSION" | awk '{print $2}'`
