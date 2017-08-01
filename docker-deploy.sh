@@ -100,7 +100,6 @@ function calculate_tags_and_build_container() {
 
         echo "Using Git Tags to increment version"
 
-        #increment git version
         git fetch --tags
         git_tags=`git tag -l --sort=v:refname | grep $major_version || echo ""`
         current_minor_version=""
