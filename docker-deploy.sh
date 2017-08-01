@@ -75,7 +75,7 @@ function build_container() {
     echo "travis_fold:end:berks-vendor"
 
     docker login $base_registry_host -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
-    docker login $docker_registry_host -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
+    docker login $DOCKER_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
 
     echo "travis_fold:start:packer-build"
     $packer_dir/packer build packer.json
@@ -120,21 +120,12 @@ function calculate_tags_and_build_container() {
     else
 
         echo "Using Docker Tags to increment version"
-        docker_registry_host=`cat DOCKER_METADATA | grep "DOCKER_REGISTRY_HOST" | awk '{print $2}'`
-        docker_repository=`cat DOCKER_METADATA | grep "DOCKER_REPOSITORY" | awk '{print $2}'`
-        if [[ -z $docker_registry_host ||
-            -z $docker_repository ]]; then
-           echo "Docker Registry Host and Repository are required!"
-           exit 1
-        fi
-    
-        export FULL_DOCKER_REPOSITORY=$docker_registry_host/$docker_repository
-        tag_catalog_url=`echo $docker_repository | awk -v host=$docker_registry_host -F'/' '{print "https://"host"/v2/"$1"/"$2"/tags/list"}'`
+        tag_catalog_url=`echo $DOCKER_REPOSITORY | awk -v host=$DOCKER_REGISTRY_HOST -F'/' '{print "https://"host"/v2/"$1"/"$2"/tags/list"}'`
 
         echo "Fetching base image tags at: [ $tag_catalog_url ]"
         major_version_tags=`curl -u $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD $tag_catalog_url | jq -r '.tags[]' | grep $major_version || echo ""`
         if [[ ! -z $major_version_tags ]]; then
-            echo "Tags from [ $docker_registry_host/$docker_repository ] that match desired major version [ $major_version ]"
+            echo "Tags from [ $DOCKER_REGISTRY_HOST/$DOCKER_REPOSITORY ] that match desired major version [ $major_version ]"
             echo $major_version_tags
             minor_version=-1
 
@@ -176,6 +167,16 @@ export BUILD_DIRECTORY=$(pwd)
 set -e -u
 
 major_version=`cat DOCKER_METADATA | grep "MAJOR_VERSION" | awk '{print $2}'`
+export DOCKER_REGISTRY_HOST=`cat DOCKER_METADATA | grep "DOCKER_REGISTRY_HOST" | awk '{print $2}'`
+export DOCKER_REPOSITORY=`cat DOCKER_METADATA | grep "DOCKER_REPOSITORY" | awk '{print $2}'`
+export DOCKER_GIT_TAG_ENABLED=`cat DOCKER_METADATA | grep "DOCKER_GIT_TAG_ENABLED" | awk '{print $2}'`
+if [[ -z $DOCKER_REGISTRY_HOST ||
+    -z $DOCKER_REPOSITORY ]]; then
+   echo "Docker Registry Host and Repository are required!"
+   exit 1
+fi
+
+export FULL_DOCKER_REPOSITORY=$DOCKER_REGISTRY_HOST/$DOCKER_REPOSITORY
 
 if [[ "$TRAVIS_PULL_REQUEST" == "false" &&
     "$TRAVIS_EVENT_TYPE" == "push" ]]; then    
