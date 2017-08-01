@@ -93,18 +93,7 @@ function build_container() {
     echo "travis_fold:end:docker-push"
 }
 
-echo "Installing Berkshelf"
-gem install berkshelf
-
-echo "Current Working Directory is [ $(pwd) ]"
-export BUILD_DIRECTORY=$(pwd)
-
-set -e -u
-
-major_version=`cat DOCKER_METADATA | grep "MAJOR_VERSION" | awk '{print $2}'`
-
-if [[ "$TRAVIS_PULL_REQUEST" == "false" &&
-     "$TRAVIS_EVENT_TYPE" == "push" ]]; then
+function calculate_tags_and_build_container() {
 
     echo "Current Major Version is $major_version"
     if [[ "$DOCKER_GIT_TAG_ENABLED" == "true" ]]; then
@@ -176,6 +165,22 @@ if [[ "$TRAVIS_PULL_REQUEST" == "false" &&
         git tag -a $new_minor_version -m "Tag for version $new_minor_version"
         git push origin tag $new_minor_version -f
     fi
+}
+
+echo "Installing Berkshelf"
+gem install berkshelf
+
+echo "Current Working Directory is [ $(pwd) ]"
+export BUILD_DIRECTORY=$(pwd)
+
+set -e -u
+
+major_version=`cat DOCKER_METADATA | grep "MAJOR_VERSION" | awk '{print $2}'`
+
+if [[ "$TRAVIS_PULL_REQUEST" == "false" &&
+    "$TRAVIS_EVENT_TYPE" == "push" ]]; then    
+
+    calculate_tags_and_build_container
 
 elif [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
     build_container `echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }'`
