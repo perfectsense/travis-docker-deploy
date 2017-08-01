@@ -147,7 +147,7 @@ function calculate_tags_and_build_container() {
                 fi
             done
             if (( $minor_version > -1 )); then
-               (($minor_version++))
+               minor_version=$((minor_version+1))
             else
                $minor_version=0
             fi
