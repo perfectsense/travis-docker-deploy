@@ -25,7 +25,6 @@ function build_container() {
         if [[ ! -z $minor_version_tags ]]; then
             echo "Tags from [ $base_registry_host/$base_repository ] that match desired minor version [ $base_minor_version ]"
             echo $minor_version_tags
-            base_full_version=""
             base_patch_version=-1
 
             for tag in $minor_version_tags; do
