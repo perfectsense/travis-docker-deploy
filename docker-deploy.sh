@@ -181,7 +181,25 @@ export FULL_DOCKER_REPOSITORY=$DOCKER_REGISTRY_HOST/$DOCKER_REPOSITORY
 if [[ "$TRAVIS_PULL_REQUEST" == "false" &&
     "$TRAVIS_EVENT_TYPE" == "push" ]]; then    
 
-    calculate_tags_and_build_container
+    environments_enabled=`cat DOCKER_METADATA | grep "ENVIRONMENTS_ENABLED" | awk '{print $2}'`
+    if [[ $environments_enabled == "true" ]]; then
+
+        echo "Building Containers for all environments in [$TRAVIS_BUILD_DIR/ops/chef/environments]"
+
+        for environment_file in $(ls $TRAVIS_BUILD_DIR/ops/chef/environments); do
+            export ENVIRONMENT=$(echo $environment_file | awk -F'.' '{print $1}')
+            if [[ $ENVIRONMENT == "production" ]]; then
+                calculate_tags_and_build_container
+            elif [[ $ENVIRONMENT == "vagrant" ]]; then
+               echo "Skipping Vagrant Environment..."
+            else
+               build_container $ENVIRONMENT $ENVIRONMENT
+            fi
+        done
+
+    else
+        calculate_tags_and_build_container
+    fi
 
 elif [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
     build_container `echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }'`
