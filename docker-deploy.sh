@@ -85,7 +85,7 @@ function build_container() {
     echo "Tagging : [$FULL_DOCKER_REPOSITORY:$DOCKER_TAG]"
     docker push $FULL_DOCKER_REPOSITORY:$DOCKER_TAG
 
-    if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+    if [[ "$2" == "latest" ]]; then
         echo "Tagging : [$FULL_DOCKER_REPOSITORY:latest]"
         docker tag $FULL_DOCKER_REPOSITORY:$DOCKER_TAG $FULL_DOCKER_REPOSITORY:latest
         docker push $FULL_DOCKER_REPOSITORY:latest
@@ -150,7 +150,7 @@ function calculate_tags_and_build_container() {
     fi
 
     echo "New Minor Version is $new_minor_version"
-    build_container $new_minor_version.$TRAVIS_BUILD_NUMBER
+    build_container $new_minor_version.$TRAVIS_BUILD_NUMBER "latest"
 
     if [[ "$DOCKER_GIT_TAG_ENABLED" == "true" ]]; then
         git tag -a $new_minor_version -m "Tag for version $new_minor_version"
