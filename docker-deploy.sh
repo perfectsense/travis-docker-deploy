@@ -129,9 +129,7 @@ function calculate_tags_and_build_container() {
             minor_version=-1
 
             for tag in $major_version_tags; do
-                echo $tag
                 tag_minor_version=$(echo $tag | awk -F'.' '{print $2}')
-                echo $tag_minor_version
                 if (( $tag_minor_version > $minor_version )); then
                     minor_version=$tag_minor_version
                 fi
