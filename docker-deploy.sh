@@ -2,24 +2,28 @@
 
 function build_container() {
 
-
-    docker login $base_registry_host -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
-    docker login $DOCKER_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
-
-    if [[ "$docker_tag_type" == "pull_request" ]]; then
-        ./build.sh -t $(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }') -b $BASE_IMAGE_TAG $CONTAINER
-
     echo "travis_fold:start:install-packer"
     packer_dir=$BUILD_DIRECTORY/tmp-packer
     if [[ ! -d $packer_dir ]]; then
         mkdir -p $packer_dir && cd $packer_dir
         wget https://releases.hashicorp.com/packer/1.0.0/packer_1.0.0_linux_amd64.zip
         unzip packer_1.0.0_linux_amd64.zip
+        export PACKER=$BUILD_DIRECTORY/tmp-packer/packer 
         cd $BUILD_DIRECTORY
     else
        echo "Packer is already installed. Skipping..."
     fi
     echo "travis_fold:end:install-packer"
+
+    docker login $BASE_IMAGE_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
+    docker login $DOCKER_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
+
+    if [[ "$docker_tag_type" == "pull_request" ]]; then
+        ./build.sh -t $(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }') -b $BASE_IMAGE_TAG $CONTAINER
+
+    elif [[ "$docker_tag_type" == "environment" ]]; then
+        ./build.sh -t $ENVIRONMENT -e $ENVIRONMENT -b $BASE_IMAGE_TAG $CONTAINER
+        
     elif [[ "$docker_tag_type" == "increment_minor_version" ||
         "$docker_tag_type" == "increment_patch_version"  ]]; then
 
@@ -55,7 +59,12 @@ function build_container() {
         fi
 
         echo "Calculated Minor Version is $new_minor_version"
-        ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" -b $BASE_IMAGE_TAG $CONTAINER
+
+        if [[ -z $ENVIRONMENT ]]; then
+            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" -b $BASE_IMAGE_TAG $CONTAINER
+        else
+            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" -e $ENVIRONMENT -b $BASE_IMAGE_TAG $CONTAINER
+        fi
 
     else
         echo "Could not calculate docker tag type!"
@@ -66,6 +75,7 @@ function build_container() {
 
 echo "Current Working Directory is [ $(pwd) ]"
 export BUILD_DIRECTORY=$(pwd)
+export CHEF_DIRECTORY="$BUILD_DIRECTORY/../chef"
 
 for CONTAINER in *; do
     [[ -d "$CONTAINER" ]] || continue
@@ -161,16 +171,21 @@ for CONTAINER in *; do
         for environment_file in *.json; do
             export ENVIRONMENT=$(echo $environment_file | awk -F'.' '{print $1}')
             if [[ $ENVIRONMENT == "production" ]]; then
-                echo "Increment Version"
+                export docker_tag_type="increment_minor_version"
+                cd $BUILD_DIRECTORY
+                build_container
             elif [[ $ENVIRONMENT == "vagrant" ]]; then
                echo "Skipping Vagrant Environment..."
             else
+               export docker_tag_type="environment"
+               cd $BUILD_DIRECTORY
                echo "Environment Tag [ $ENVIRONMENT ]"
+               build_container
             fi
         done
     else
+        export ENVIRONMENT=""
         build_container
     fi
-
 done
 
