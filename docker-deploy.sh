@@ -198,7 +198,6 @@ for CONTAINER in *; do
             fi
         done
     else
-        export ENVIRONMENT=""
         build_container
     fi
 done
