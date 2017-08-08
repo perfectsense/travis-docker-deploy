@@ -80,6 +80,20 @@ export CHEF_DIRECTORY="$BUILD_DIRECTORY/../chef"
 for CONTAINER in *; do
     [[ -d "$CONTAINER" ]] || continue
 
+    unset DOCKER_REGISTRY_HOST
+    unset DOCKER_REPOSITORY
+    unset MAJOR_VERSION
+    unset BASE_IMAGE_REGISTRY_HOST
+    unset BASE_IMAGE_REPOSITORY
+    unset BASE_IMAGE_MINOR_VERSION
+    unset ENVIRONMENTS_ENABLED
+    unset FULL_DOCKER_REPOSITORY
+    unset BASE_IMAGE
+    unset BASE_IMAGE_TAG
+    unset ENVIRONMENT
+    unset docker_tag_type
+    
+
     echo "Analyzing [ $CONTAINER ] for build"
 
     set -e -u
