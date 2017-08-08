@@ -2,13 +2,12 @@
 
 function build_container() {
 
-    if [[ -z $1 ]]; then
-       echo "DOCKER_TAG is required to build a container"
-       exit 1
-    fi
 
-    export DOCKER_TAG=$1
+    docker login $base_registry_host -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
+    docker login $DOCKER_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
 
+    if [[ "$docker_tag_type" == "pull_request" ]]; then
+        ./build.sh -t $(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }') -b $BASE_IMAGE_TAG $CONTAINER
 
     echo "travis_fold:start:install-packer"
     packer_dir=$BUILD_DIRECTORY/tmp-packer
@@ -21,31 +20,47 @@ function build_container() {
        echo "Packer is already installed. Skipping..."
     fi
     echo "travis_fold:end:install-packer"
+    elif [[ "$docker_tag_type" == "increment_minor_version" ||
+        "$docker_tag_type" == "increment_patch_version"  ]]; then
 
-    echo "travis_fold:start:berks-vendor"
-    if [[ -d $BUILD_DIRECTORY/vendor/cookbooks ]]; then
-        rm -rf $BUILD_DIRECTORY/vendor/cookbooks
+        echo "Using Docker Tags to increment version"
+        tag_catalog_url=`echo $DOCKER_REPOSITORY | awk -v host=$DOCKER_REGISTRY_HOST -F'/' '{print "https://"host"/v2/"$1"/"$2"/tags/list"}'`
+
+        echo "Fetching base image tags at: [ $tag_catalog_url ]"
+        major_version_tags=`curl -u $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD $tag_catalog_url | jq -r '.tags[]' | grep $MAJOR_VERSION || echo ""`
+        if [[ ! -z $major_version_tags ]]; then
+            echo "Tags from [ $DOCKER_REGISTRY_HOST/$DOCKER_REPOSITORY ] that match desired major version [ $MAJOR_VERSION ]"
+            echo $major_version_tags
+            minor_version=-1
+
+            for tag in $major_version_tags; do
+                tag_minor_version=$(echo $tag | awk -F'.' '{print $2}')
+                if (( $tag_minor_version > $minor_version )); then
+                    minor_version=$tag_minor_version
+                fi
+            done
+
+            if (( $minor_version > -1 )); then
+               if [[ "$docker_tag_type" == "increment_minor_version" ]]; then
+                   echo "Incrementing minor version"
+                   minor_version=$((minor_version+1))
+               fi
+            else
+               $minor_version=0
+            fi
+            new_minor_version=$MAJOR_VERSION$minor_version
+        else
+            echo "No Major Version tags found!"
+            new_minor_version=$MAJOR_VERSION"0"
+        fi
+
+        echo "Calculated Minor Version is $new_minor_version"
+        ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" -b $BASE_IMAGE_TAG $CONTAINER
+
+    else
+        echo "Could not calculate docker tag type!"
+        continue
     fi
-    berks vendor $BUILD_DIRECTORY/vendor/cookbooks
-    echo "travis_fold:end:berks-vendor"
-
-    docker login $base_registry_host -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
-    docker login $DOCKER_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
-
-    echo "travis_fold:start:packer-build"
-    $packer_dir/packer build packer.json
-    echo "travis_fold:end:packer-build"
-
-    echo "travis_fold:start:docker-push"
-    echo "Tagging : [$FULL_DOCKER_REPOSITORY:$DOCKER_TAG]"
-    docker push $FULL_DOCKER_REPOSITORY:$DOCKER_TAG
-
-    if [[ "$2" == "latest" ]]; then
-        echo "Tagging : [$FULL_DOCKER_REPOSITORY:latest]"
-        docker tag $FULL_DOCKER_REPOSITORY:$DOCKER_TAG $FULL_DOCKER_REPOSITORY:latest
-        docker push $FULL_DOCKER_REPOSITORY:latest
-    fi
-    echo "travis_fold:end:docker-push"
 }
 
 
@@ -124,7 +139,7 @@ for CONTAINER in *; do
     
         if [[ ${ENVIRONMENTS_ENABLED+x} &&
             $ENVIRONMENTS_ENABLED == "true" ]]; then
-            echo "TODO. Environments"
+            docker_tag_type="environments"
         else
             docker_tag_type="increment_minor_version"
         fi
@@ -135,57 +150,27 @@ for CONTAINER in *; do
         docker_tag_type="increment_patch_version"
     fi
 
+    export $docker_tag_type
+
     cd $BUILD_DIRECTORY
-    echo $(pwd)
 
-    if [[ "$docker_tag_type" == "pull_request" ]]; then
-        ./build.sh -t $(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }') -b $BASE_IMAGE_TAG $CONTAINER
-
-    elif [[ "$docker_tag_type" == "increment_minor_version" ||
-        "$docker_tag_type" == "increment_patch_version"  ]]; then
-
-        echo "Using Docker Tags to increment version"
-        tag_catalog_url=`echo $DOCKER_REPOSITORY | awk -v host=$DOCKER_REGISTRY_HOST -F'/' '{print "https://"host"/v2/"$1"/"$2"/tags/list"}'`
-
-        echo "Fetching base image tags at: [ $tag_catalog_url ]"
-        major_version_tags=`curl -u $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD $tag_catalog_url | jq -r '.tags[]' | grep $MAJOR_VERSION || echo ""`
-        if [[ ! -z $major_version_tags ]]; then
-            echo "Tags from [ $DOCKER_REGISTRY_HOST/$DOCKER_REPOSITORY ] that match desired major version [ $MAJOR_VERSION ]"
-            echo $major_version_tags
-            minor_version=-1
-
-            for tag in $major_version_tags; do
-                tag_minor_version=$(echo $tag | awk -F'.' '{print $2}')
-                if (( $tag_minor_version > $minor_version )); then
-                    minor_version=$tag_minor_version
-                fi
-            done
-
-            if (( $minor_version > -1 )); then
-               if [[ "$docker_tag_type" == "increment_minor_version" ]]; then
-                   echo "Incrementing minor version"
-                   minor_version=$((minor_version+1))
-               fi
+    if [[ $docker_tag_type == "environments" ]]; then
+        echo "Building Containers for all environments in [$CHEF_DIRECTORY/environments]"
+        cd $CHEF_DIRECTORY/environments
+    
+        for environment_file in *.json; do
+            export ENVIRONMENT=$(echo $environment_file | awk -F'.' '{print $1}')
+            if [[ $ENVIRONMENT == "production" ]]; then
+                echo "Increment Version"
+            elif [[ $ENVIRONMENT == "vagrant" ]]; then
+               echo "Skipping Vagrant Environment..."
             else
-               $minor_version=0
+               echo "Environment Tag [ $ENVIRONMENT ]"
             fi
-            new_minor_version=$MAJOR_VERSION$minor_version
-        else
-            echo "No Major Version tags found!"
-            new_minor_version=$MAJOR_VERSION"0"
-        fi
-
-        echo "Calculated Minor Version is $new_minor_version"
-        ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" -b $BASE_IMAGE_TAG $CONTAINER
-
+        done
     else
-        echo "Could not calculate docker tag type!"
-        continue
+        build_container
     fi
+
 done
-
-
-
-
-
 
