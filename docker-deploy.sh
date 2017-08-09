@@ -22,6 +22,7 @@ function build_container() {
         ./build.sh -t $(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }') \
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
+            -x $PACKER \
             -n -a \
             $CONTAINER
 
@@ -30,6 +31,7 @@ function build_container() {
             -e $ENVIRONMENT \
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
+            -x $PACKER \
             -n -a \
             $CONTAINER
         
@@ -73,6 +75,7 @@ function build_container() {
             ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
+                -x $PACKER \
                 -n -a \
                 $CONTAINER
         else
@@ -80,6 +83,7 @@ function build_container() {
                 -e $ENVIRONMENT \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
+                -x $PACKER \
                 -n -a \
                 $CONTAINER
         fi
