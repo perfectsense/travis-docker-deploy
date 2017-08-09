@@ -71,16 +71,19 @@ function build_container() {
 
         echo "Calculated Minor Version is $new_minor_version"
 
-        if [[ -z $ENVIRONMENT ]]; then
-            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" \
+        if [[ ${ENVIRONMENT+x} &&
+            ! -z "$ENVIRONMENT" ]]; then
+
+            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER"
+                -e $ENVIRONMENT \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
                 -n -a \
                 $CONTAINER
         else
-            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER"
-                -e $ENVIRONMENT \
+
+            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
