@@ -23,7 +23,7 @@ function build_container() {
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
             -x $PACKER \
-            -n -a \
+            -n -a -P \
             $CONTAINER
 
     elif [[ "$docker_tag_type" == "environment" ]]; then
@@ -32,7 +32,7 @@ function build_container() {
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
             -x $PACKER \
-            -n -a \
+            -n -a -P \
             $CONTAINER
         
     elif [[ "$docker_tag_type" == "increment_minor_version" ||
@@ -79,7 +79,7 @@ function build_container() {
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
-                -n -a \
+                -n -a -P \
                 $CONTAINER
         else
 
@@ -87,7 +87,7 @@ function build_container() {
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
-                -n -a \
+                -n -a -P -l \
                 $CONTAINER
         fi
 
