@@ -76,7 +76,7 @@ function build_container() {
         if [[ ${ENVIRONMENT+x} &&
             ! -z "$ENVIRONMENT" ]]; then
 
-            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER"
+            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" \
                 -e $ENVIRONMENT \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
