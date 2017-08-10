@@ -105,16 +105,9 @@ function build_container() {
 echo "Current Working Directory is [ $(pwd) ]"
 export BUILD_DIRECTORY=$(pwd)
 export CHEF_DIRECTORY="$BUILD_DIRECTORY/../chef"
-export DATABAG_SECRET_KEY_PATH="${TRAVIS_BUILD_DIR}/chef-solo-databag.key"
 
-if [[ ${DATABAG_SECRET_KEY+x} &&
-    -n $DATABAG_SECRET_KEY ]]; then
-
-   if [[ ! -f $DATABAG_SECRET_KEY_PATH ]]; then
-       touch $DATABAG_SECRET_KEY_PATH
-   fi 
-
-   echo $DATABAG_SECRET_KEY >> $DATABAG_SECRET_KEY_PATH
+if [[ ! ${DATABAG_SECRET_KEY_PATH+x} ]]; then
+    DATABAG_SECRET_KEY_PATH=""
 fi
 
 for CONTAINER in *; do
