@@ -126,7 +126,7 @@ for CONTAINER in *; do
     unset ENVIRONMENT
     unset docker_tag_type
     
-
+    export CONTAINER
     echo "Analyzing [ $CONTAINER ] for build"
 
     set -e -u
@@ -189,5 +189,7 @@ for CONTAINER in *; do
     else
         build_container
     fi
+
+    unset CONTAINER
 done
 
