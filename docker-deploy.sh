@@ -23,6 +23,7 @@ function build_container() {
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
             -x $PACKER \
+            -s $DATABAG_SECRET_KEY_PATH \
             -n -a -P \
             $CONTAINER
 
@@ -32,6 +33,7 @@ function build_container() {
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
             -x $PACKER \
+            -s $DATABAG_SECRET_KEY_PATH \
             -n -a -P \
             $CONTAINER
         
@@ -74,11 +76,12 @@ function build_container() {
         if [[ ${ENVIRONMENT+x} &&
             ! -z "$ENVIRONMENT" ]]; then
 
-            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER"
+            ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" \
                 -e $ENVIRONMENT \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
+                -s $DATABAG_SECRET_KEY_PATH \
                 -n -a -P \
                 $CONTAINER
         else
@@ -87,6 +90,7 @@ function build_container() {
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
+                -s $DATABAG_SECRET_KEY_PATH \
                 -n -a -P -l \
                 $CONTAINER
         fi
@@ -101,6 +105,10 @@ function build_container() {
 echo "Current Working Directory is [ $(pwd) ]"
 export BUILD_DIRECTORY=$(pwd)
 export CHEF_DIRECTORY="$BUILD_DIRECTORY/../chef"
+
+if [[ ! ${DATABAG_SECRET_KEY_PATH+x} ]]; then
+    DATABAG_SECRET_KEY_PATH=""
+fi
 
 for CONTAINER in *; do
     [[ -d "$CONTAINER" ]] || continue
@@ -118,7 +126,7 @@ for CONTAINER in *; do
     unset ENVIRONMENT
     unset docker_tag_type
     
-
+    export CONTAINER
     echo "Analyzing [ $CONTAINER ] for build"
 
     set -e -u
@@ -181,5 +189,7 @@ for CONTAINER in *; do
     else
         build_container
     fi
+
+    unset CONTAINER
 done
 
