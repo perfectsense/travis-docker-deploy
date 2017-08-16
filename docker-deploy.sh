@@ -42,9 +42,30 @@ function build_container() {
 
         echo "Using Docker Tags to increment version"
         tag_catalog_url=`echo $DOCKER_REPOSITORY | awk -v host=$DOCKER_REGISTRY_HOST -F'/' '{print "https://"host"/v2/"$1"/"$2"/tags/list"}'`
+        echo "Fetching Docker tags at: [ $tag_catalog_url ]"
 
-        echo "Fetching base image tags at: [ $tag_catalog_url ]"
-        major_version_tags=`curl -u $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD $tag_catalog_url | jq -r '.tags[]' | grep $MAJOR_VERSION || echo ""`
+        token_fetch_url=""
+        token=""
+        auth_info=$(curl -I $tag_catalog_url | grep "Www-Authenticate" || echo "")
+        if [[ -n $auth_info ]]; then
+            token_fetch_url=$(echo $auth_info | awk '{print $3}' | awk -F ',' '{ gsub("\"", "", $1); gsub("realm=", "", $1); gsub("\"", "", $2); gsub("\"", "", $3); print $1"?"$2"&"$3}')
+        else
+            echo "Cannot access tags at [ $tag_catalog_url ]"
+        fi
+
+        if [[ -n $token_fetch_url ]]; then
+            token_fetch_url=$(echo $token_fetch_url | tr -d '\r')
+            token=$(curl -H "Authorization: Basic $(printf $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD | base64)" "$token_fetch_url" | jq -r '.token')
+        else
+            echo "no token auth url"
+        fi
+
+        if [[ -z $token ]]; then
+            echo "Could not Authenticate with Docker Registry: [ $DOCKER_REGISTRY_HOST ]"
+            return
+        fi
+
+        major_version_tags=`curl -H "Authorization: Bearer $token" "$tag_catalog_url" | jq -r '.tags[]' | grep $MAJOR_VERSION || echo ""`
         if [[ ! -z $major_version_tags ]]; then
             echo "Tags from [ $DOCKER_REGISTRY_HOST/$DOCKER_REPOSITORY ] that match desired major version [ $MAJOR_VERSION ]"
             echo $major_version_tags
