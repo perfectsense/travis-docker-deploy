@@ -118,7 +118,6 @@ function build_container() {
 
     else
         echo "Could not calculate docker tag type!"
-        continue
     fi
 }
 
