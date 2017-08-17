@@ -55,7 +55,7 @@ function build_container() {
 
         if [[ -n $token_fetch_url ]]; then
             token_fetch_url=$(echo $token_fetch_url | tr -d '\r')
-            token=$(curl -H "Authorization: Basic $(printf $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD | base64)" "$token_fetch_url" | jq -r '.token')
+            token=$(curl -H "Authorization: Basic $(echo -n $DOCKER_BUILDER_USER:$DOCKER_BUILDER_PASSWORD | tr -d '\r' | base64)" "$token_fetch_url" | jq -r '.token')
         else
             echo "no token auth url"
         fi
