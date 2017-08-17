@@ -19,13 +19,21 @@ function build_container() {
     docker login $DOCKER_REGISTRY_HOST -u $DOCKER_BUILDER_USER -p $DOCKER_BUILDER_PASSWORD
 
     if [[ "$docker_tag_type" == "pull_request" ]]; then
-        ./build.sh -t $(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }') \
+        tag=$(echo $TRAVIS_PULL_REQUEST_BRANCH | awk '{ gsub("/", "-"); print }')
+        ./build.sh -t $tag \
             -u $DOCKER_BUILDER_USER \
             -p $DOCKER_BUILDER_PASSWORD \
             -x $PACKER \
             -s $DATABAG_SECRET_KEY_PATH \
-            -n -a -P \
+            -n -a \
             $CONTAINER
+
+        if [[ $? == 0 ]]; then
+            echo "Pushing docker image [ $FULL_DOCKER_REPOSITORY:$tag ]"
+            docker push $FULL_DOCKER_REPOSITORY:$tag
+        else
+            echo "Container build failed!"
+        fi
 
     elif [[ "$docker_tag_type" == "environment" ]]; then
         ./build.sh -t $ENVIRONMENT \
@@ -34,8 +42,15 @@ function build_container() {
             -p $DOCKER_BUILDER_PASSWORD \
             -x $PACKER \
             -s $DATABAG_SECRET_KEY_PATH \
-            -n -a -P \
+            -n -a \
             $CONTAINER
+
+        if [[ $? == 0 ]]; then
+            echo "Pushing docker image [ $FULL_DOCKER_REPOSITORY:$ENVIRONMENT ]"
+            docker push $FULL_DOCKER_REPOSITORY:$ENVIRONMENT
+        else
+            echo "Container build failed!"
+        fi
         
     elif [[ "$docker_tag_type" == "increment_minor_version" ||
         "$docker_tag_type" == "increment_patch_version"  ]]; then
@@ -103,17 +118,26 @@ function build_container() {
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
                 -s $DATABAG_SECRET_KEY_PATH \
-                -n -a -P \
+                -n -a \
                 $CONTAINER
         else
-
             ./build.sh -t "$new_minor_version.$TRAVIS_BUILD_NUMBER" \
                 -u $DOCKER_BUILDER_USER \
                 -p $DOCKER_BUILDER_PASSWORD \
                 -x $PACKER \
                 -s $DATABAG_SECRET_KEY_PATH \
-                -n -a -P -l \
+                -n -a \
                 $CONTAINER
+        fi
+
+        if [[ $? == 0 ]]; then
+            echo "Pushing docker image [ $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER ]"
+            docker push $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER
+            echo "Pushing docker image [ $FULL_DOCKER_REPOSITORY:latest ]"
+            docker tag $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER $DOCKER_REGISTRY_HOST:latest
+            docker push $FULL_DOCKER_REPOSITORY:latest
+        else
+            echo "Container build failed!"
         fi
 
     else
