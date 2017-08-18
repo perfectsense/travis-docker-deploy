@@ -134,7 +134,7 @@ function build_container() {
             echo "Pushing docker image [ $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER ]"
             docker push $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER
             echo "Pushing docker image [ $FULL_DOCKER_REPOSITORY:latest ]"
-            docker tag $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER $DOCKER_REGISTRY_HOST:latest
+            docker tag $FULL_DOCKER_REPOSITORY:$new_minor_version.$TRAVIS_BUILD_NUMBER $FULL_DOCKER_REPOSITORY:latest
             docker push $FULL_DOCKER_REPOSITORY:latest
         else
             echo "Container build failed!"
