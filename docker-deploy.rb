@@ -47,6 +47,9 @@ def push_container(docker_host, docker_repo, user, password, tag, latest)
 
   system("docker login #{docker_host} -u #{user} -p #{password}")
   system("docker push #{docker_image}")
+  if $? != 0
+    raise ArgumentError, 'Failed to push container'
+  end
 
   if latest
     system("docker tag #{docker_image} #{docker_host}/#{docker_repo}:latest")
