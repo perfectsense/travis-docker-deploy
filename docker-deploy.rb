@@ -44,7 +44,6 @@ end
 
 def push_container(docker_host, docker_repo, user, password, tag, latest)
   docker_image = "#{docker_host}/#{docker_repo}:#{tag}"
-  puts docker_image
 
   system("docker login #{docker_host} -u #{user} -p #{password}")
   system("docker push #{docker_image}")
