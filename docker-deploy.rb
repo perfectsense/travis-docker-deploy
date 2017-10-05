@@ -17,7 +17,7 @@ def install_packer(build_dir)
 end
 
 def calculate_tag_type
-  if ENV['TRAVIS_PULL_REQUEST'] == 'true'
+  if ENV['TRAVIS_EVENT_TYPE'] == 'pull_request'
     tag_type = 'pull_request'
     puts "Docker Tag will be Branch Name"
   else 
