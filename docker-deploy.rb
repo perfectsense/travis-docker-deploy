@@ -91,8 +91,8 @@ def build_container(container, docker_dir, packer_exec)
   push_container(
     metadata['DOCKER_REGISTRY_HOST'],
     metadata['DOCKER_REPOSITORY'],
-    metadata['DOCKER_BUILDER_PASSWORD'],
-    metadata['DOCKER_BUILDER_PASSWORD'],
+    ENV['DOCKER_BUILDER_USER'],
+    ENV['DOCKER_BUILDER_PASSWORD'],
     docker_tag,
     latest)
 end
