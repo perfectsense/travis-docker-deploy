@@ -104,13 +104,11 @@ def build
 
   docker_dir = "#{build_dir}/docker"
   if !Dir.exist?(docker_dir)
-    puts "Docker directory does not exist! Exiting"
-    exit(false)
+    raise ArgumentError, 'Docker directory does not exist! Exiting'
   end
 
   if !File.exist?("#{docker_dir}/build.sh")
-    puts "Docker build script does not exist! Exiting"
-    exit(false)
+    raise ArgumentError, 'Docker build script does not exist! Exiting'
   end
 
   for container in Dir.entries(docker_dir).select {|f| File.directory?(File.join(docker_dir, f)) and !(f == '.' || f == '..')}
