@@ -17,7 +17,15 @@ def install_packer(build_dir)
 end
 
 def calculate_tag_type
-  return ENV['TRAVIS_PULL_REQUEST'] == 'true' ? 'pull_request' : 'increment_patch'
+  if ENV['TRAVIS_PULL_REQUEST'] == 'true'
+    tag_type = 'pull_request'
+    puts "Docker Tag will be Branch Name"
+  else 
+    tag_type = 'increment_patch'
+    puts "Docker Tag will increment Patch Version"
+  end
+
+  return tag_type
 end
 
 def extract_metadata(file)
@@ -61,7 +69,6 @@ def build_container(container, docker_dir, packer_exec)
   metadata = extract_metadata("#{container_dir}/docker_metadata.sh")
 
   tag_type = calculate_tag_type
-  puts tag_type
 
   latest = false
   if tag_type == 'pull_request'
