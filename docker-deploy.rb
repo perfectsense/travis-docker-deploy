@@ -34,8 +34,8 @@ def extract_metadata(file)
 
   File.foreach(file) do |line|
     if line.match(/export (.)*=\"(.)*\"/)
-      key_and_value = line.gsub('export ', '').strip.split("=")
-      metadata[key_and_value[0]] = key_and_value[1][1...-2]
+      key_and_value = line.gsub('export ', '').gsub('\"', '').strip.split("=")
+      metadata[key_and_value[0]] = key_and_value[1]
     end
   end
 
