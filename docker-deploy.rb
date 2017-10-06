@@ -95,10 +95,6 @@ def push_image(docker_host, docker_repo, user, password, tag, latest)
   return docker_image
 end
 
-def build_image(container, docker_dir, packer_exec)
-end
-
-
 def calculate_repo_name(full_repo)
   if full_repo.match(/(.*)@(.*):(.*)\/(.*)\.git/)
     full_repo.gsub(/(.*)@(.*):(.*)\//, '').gsub(/\.git/, '')
