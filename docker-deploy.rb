@@ -19,7 +19,6 @@ def check_preconditions(build_dir)
     raise ArgumentError, 'Docker build script does not exist!'
   end
 
-  require_env_var('DEFAULTS_REPOSITORY')
   require_env_var('DOCKER_BUILDER_USER')
   require_env_var('DOCKER_BUILDER_PASSWORD')
 
@@ -36,9 +35,6 @@ def check_preconditions(build_dir)
     raise ArgumentError, "[ packer.json ] file not found for [ #{container} ] container"
   end
 
-  if !Dir.exist?("#{build_dir}/defaults")
-    raise ArgumentError 'Cannot find [ defaults ] directory'
-  end
 end
 
 def calculate_tag_type
@@ -101,7 +97,7 @@ def copy_local_defaults_to_remote(defaults_repo_name, container)
 end
 
 def update_remote_defaults(container, docker_tag)
-  defaults_repo = ENV['DEFAULTS_REPOSITORY']
+  defaults_repo = require_env_var('DEFAULTS_REPOSITORY')
   defaults_repo_name = calculate_repo_name(defaults_repo)
 
   system("git clone #{defaults_repo}")
@@ -157,5 +153,7 @@ push_image(
   docker_tag,
   latest)
 
-update_remote_defaults(container, docker_tag)
+if Dir.exist?("#{build_dir}/defaults")
+  update_remote_defaults(container, docker_tag)
+end
 
