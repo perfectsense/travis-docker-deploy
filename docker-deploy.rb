@@ -139,6 +139,7 @@ end
 
 build_dir = Dir.pwd
 check_preconditions(build_dir)
+docker_dir = "#{build_dir}/docker"
 
 container = ENV['CONTAINER']
 puts "Building [ #{container} ] Docker Image"
