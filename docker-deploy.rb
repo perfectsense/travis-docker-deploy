@@ -2,6 +2,13 @@
 
 require 'fileutils'
 
+def require_env_var(var_name)
+  if ENV[var_name] == nil or ENV[var_name].empty?
+    raise ArgumentError, "Required Environmental Variable [ #{var_name} ] is not found."
+  end
+  return ENV[var_name]
+end
+
 def install_packer(build_dir)
 
   if !Dir.exist?("#{build_dir}/tmp-packer")
@@ -19,7 +26,7 @@ end
 def calculate_tag_type
   if ENV['TRAVIS_EVENT_TYPE'] == 'pull_request'
     tag_type = 'pull_request'
-    puts "Docker Tag will be Branch Name"
+    puts "Docker Tag will be Pull Request Branch Name"
   else 
     tag_type = 'increment_patch'
     puts "Docker Tag will increment Patch Version"
@@ -60,16 +67,8 @@ end
 def build_container(container, docker_dir, packer_exec)
 
   puts "Analyzing [ #{container} ] for build"
-
   container_dir = "#{docker_dir}/#{container}"
-
-  if !File.exist?("#{container_dir}/docker_metadata.sh")
-    puts "[ docker_metadata.sh ] file not found for container [ #{container} ]"
-    return
-  end
-
   metadata = extract_metadata("#{container_dir}/docker_metadata.sh")
-
   tag_type = calculate_tag_type
 
   latest = false
@@ -100,23 +99,44 @@ def build_container(container, docker_dir, packer_exec)
     latest)
 end
 
-def build
-
-  build_dir = Dir.pwd
-  packer_exec = install_packer(build_dir)
+def check_preconditions(build_dir)
 
   docker_dir = "#{build_dir}/docker"
   if !Dir.exist?(docker_dir)
-    raise ArgumentError, 'Docker directory does not exist! Exiting'
+    raise ArgumentError, 'Docker directory does not exist!'
   end
 
   if !File.exist?("#{docker_dir}/build.sh")
-    raise ArgumentError, 'Docker build script does not exist! Exiting'
+    raise ArgumentError, 'Docker build script does not exist!'
   end
 
-  for container in Dir.entries(docker_dir).select {|f| File.directory?(File.join(docker_dir, f)) and !(f == '.' || f == '..')}
-    build_container(container, docker_dir, packer_exec)
+  require_env_var('DOCKER_BUILDER_USER')
+  require_env_var('DOCKER_BUILDER_PASSWORD')
+
+  container = require_env_var('CONTAINER')
+  if !Dir.exist?("#{docker_dir}/#{container}")
+    raise ArgumentError, 'Container directory does not exist!'
   end
+
+  if !File.exist?("#{docker_dir}/#{container}/docker_metadata.sh")
+    raise ArgumentError, "[ docker_metadata.sh ] file not found for [ #{container} ] container"
+  end
+
+  if !File.exist?("#{docker_dir}/#{container}/packer.json")
+    raise ArgumentError, "[ packer.json ] file not found for [ #{container} ] container"
+  end
+end  
+
+def build
+
+  build_dir = Dir.pwd
+  check_preconditions(build_dir)
+
+  build_container(
+    ENV['CONTAINER'],
+    "#{build_dir}/docker",
+    install_packer(build_dir))
+
 end
 
 build
