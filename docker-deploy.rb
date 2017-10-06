@@ -41,19 +41,6 @@ def check_preconditions(build_dir)
   end
 end
 
-def install_packer(build_dir)
-  if !Dir.exist?("#{build_dir}/tmp-packer")
-    puts 'travis_fold:start:install-packer'
-      FileUtils.mkdir_p("#{build_dir}/tmp-packer")
-      Dir.chdir("#{build_dir}/tmp-packer")
-      system('wget https://releases.hashicorp.com/packer/1.0.0/packer_1.0.0_linux_amd64.zip; unzip packer_1.0.0_linux_amd64.zip')
-      Dir.chdir(build_dir)
-    puts 'travis_fold:end:install-packer'
-  end
-
-  return "#{build_dir}/tmp-packer/packer"
-end
-
 def calculate_tag_type
   if ENV['TRAVIS_EVENT_TYPE'] == 'pull_request'
     tag_type = 'pull_request'
