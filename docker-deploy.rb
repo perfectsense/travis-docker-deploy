@@ -21,20 +21,11 @@ def check_preconditions(build_dir)
 
   require_env_var('DOCKER_BUILDER_USER')
   require_env_var('DOCKER_BUILDER_PASSWORD')
+  require_env_var('DEFAULTS_LABEL')
 
-  container = require_env_var('CONTAINER')
-  if !Dir.exist?("#{docker_dir}/#{container}")
-    raise ArgumentError, 'Container directory does not exist!'
+  if !File.exist?("#{docker_dir}/docker_metadata.sh")
+    raise ArgumentError, "[ docker_metadata.sh ] file not found in [ #{docker_dir} ]"
   end
-
-  if !File.exist?("#{docker_dir}/#{container}/docker_metadata.sh")
-    raise ArgumentError, "[ docker_metadata.sh ] file not found for [ #{container} ] container"
-  end
-
-  if !File.exist?("#{docker_dir}/#{container}/packer.json")
-    raise ArgumentError, "[ packer.json ] file not found for [ #{container} ] container"
-  end
-
 end
 
 def calculate_tag_type
@@ -62,8 +53,8 @@ def extract_metadata(file)
   return metadata
 end
 
-def push_image(docker_host, docker_repo, user, password, tag, latest)
-  docker_image = "#{docker_host}/#{docker_repo}:#{tag}"
+def push_image(docker_host, docker_repo_prefix, docker_image_name, user, password, tag, latest)
+  docker_image = "#{docker_host}/#{docker_repo_prefix}/#{docker_image_name}:#{tag}"
 
   system("docker login #{docker_host} -u #{user} -p #{password}")
   system("docker push #{docker_image}")
@@ -72,8 +63,8 @@ def push_image(docker_host, docker_repo, user, password, tag, latest)
   end
 
   if latest
-    system("docker tag #{docker_image} #{docker_host}/#{docker_repo}:latest")
-    system("docker push #{docker_host}/#{docker_repo}:latest")
+    system("docker tag #{docker_image} #{docker_host}/#{docker_repo_prefix}/#{docker_image_name}:latest")
+    system("docker push #{docker_host}/#{docker_repo_prefix}/#{docker_image_name}:latest")
   end
   return docker_image
 end
@@ -119,11 +110,7 @@ end
 build_dir = Dir.pwd
 check_preconditions(build_dir)
 docker_dir = "#{build_dir}/docker"
-
-container = ENV['CONTAINER']
-puts "Building [ #{container} ] Docker Image"
-container_dir = "#{docker_dir}/#{container}"
-metadata = extract_metadata("#{container_dir}/docker_metadata.sh")
+metadata = extract_metadata("#{docker_dir}/docker_metadata.sh")
 tag_type = calculate_tag_type
 
 latest = false
@@ -134,26 +121,33 @@ elsif tag_type == 'increment_patch'
   latest = true
 end
 
-Dir.chdir(docker_dir)
-system(%W[
-  #{docker_dir}/build.sh
-  -t #{docker_tag}
-  -u #{ENV['DOCKER_BUILDER_USER']}
-  -p #{ENV['DOCKER_BUILDER_PASSWORD']}
-  -n -a
-  #{container}
-].join(' '))
-Dir.chdir(build_dir)
+for container_json in Dir["#{docker_dir}/*.json"]
+  puts container_json
+  container = container_json.split('/')[-1].split('.')[0]
+  puts "Building [ #{container} ] Docker Image"
 
-push_image(
-  metadata['DOCKER_REGISTRY_HOST'],
-  metadata['DOCKER_REPOSITORY'],
-  ENV['DOCKER_BUILDER_USER'],
-  ENV['DOCKER_BUILDER_PASSWORD'],
-  docker_tag,
-  latest)
+  Dir.chdir(docker_dir)
+  system(%W[
+    ./build.sh
+    -t #{docker_tag}
+    -u #{ENV['DOCKER_BUILDER_USER']}
+    -p #{ENV['DOCKER_BUILDER_PASSWORD']}
+    -n -a
+    #{container}
+  ].join(' '))
+  Dir.chdir(build_dir)
+
+  push_image(
+    metadata['DOCKER_REGISTRY_HOST'],
+    metadata['DOCKER_REPOSITORY_PREFIX'],
+    container,
+    ENV['DOCKER_BUILDER_USER'],
+    ENV['DOCKER_BUILDER_PASSWORD'],
+    docker_tag,
+    latest)
+end
 
 if Dir.exist?("#{build_dir}/defaults")
-  update_remote_defaults(container, docker_tag)
+  update_remote_defaults(ENV['DEFAULTS_LABEL'], docker_tag)
 end
 
