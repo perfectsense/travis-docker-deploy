@@ -148,5 +148,7 @@ end
 
 if Dir.exist?("#{build_dir}/defaults") and ENV['DEFAULTS_LABEL'] != nil
   update_remote_defaults(ENV['DEFAULTS_LABEL'], docker_tag)
+else
+  puts "Cannot push to Defaults Repo. Defaults Directory or Label does not exist!"
 end
 
