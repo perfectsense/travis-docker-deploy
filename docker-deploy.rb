@@ -21,7 +21,6 @@ def check_preconditions(build_dir)
 
   require_env_var('DOCKER_BUILDER_USER')
   require_env_var('DOCKER_BUILDER_PASSWORD')
-  require_env_var('DEFAULTS_LABEL')
 
   if !File.exist?("#{docker_dir}/docker_metadata.sh")
     raise ArgumentError, "[ docker_metadata.sh ] file not found in [ #{docker_dir} ]"
@@ -147,7 +146,7 @@ for container_json in Dir["#{docker_dir}/*.json"]
     latest)
 end
 
-if Dir.exist?("#{build_dir}/defaults")
+if Dir.exist?("#{build_dir}/defaults") and ENV['DEFAULTS_LABEL'] != nil
   update_remote_defaults(ENV['DEFAULTS_LABEL'], docker_tag)
 end
 
