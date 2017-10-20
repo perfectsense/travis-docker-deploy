@@ -76,8 +76,8 @@ def calculate_repo_name(full_repo)
   end
 end
 
-def copy_local_defaults_to_remote(defaults_repo_name, container)
-  remote_defaults_dir = "#{defaults_repo_name}/#{container}"
+def copy_local_defaults_to_remote(defaults_repo_name, defaults_label)
+  remote_defaults_dir = "#{defaults_repo_name}/#{defaults_label}"
   if Dir.exist?(remote_defaults_dir)
     FileUtils.remove_dir(remote_defaults_dir, true)
   end
@@ -86,15 +86,15 @@ def copy_local_defaults_to_remote(defaults_repo_name, container)
   FileUtils.cp_r 'defaults/.', remote_defaults_dir, :verbose => true
 end
 
-def update_remote_defaults(container, docker_tag)
+def update_remote_defaults(defaults_label, container, docker_tag)
   defaults_repo = require_env_var('DEFAULTS_REPOSITORY')
   defaults_repo_name = calculate_repo_name(defaults_repo)
 
   system("git clone #{defaults_repo}")
-  copy_local_defaults_to_remote(defaults_repo_name, container)
+  copy_local_defaults_to_remote(defaults_repo_name, defaults_label)
 
   Dir.chdir(defaults_repo_name)
-  system("git add #{container}; git commit -m \"Updating [ #{container} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin master")
+  system("git add #{container}; git commit -m \"Updating [ #{defaults_label} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin master")
 
   git_tag = "#{container}/#{docker_tag}"
   existing_tag = %x[git tag -l #{git_tag}]
@@ -103,7 +103,7 @@ def update_remote_defaults(container, docker_tag)
     system("git tag -d #{git_tag}; git push origin :refs/tags/#{git_tag}")
   end
 
-  system("git tag -a #{git_tag} -m \"Updating [ #{container} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin #{git_tag}")
+  system("git tag -a #{git_tag} -m \"Updating [ #{defaults_label} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin #{git_tag}")
 end
 
 build_dir = Dir.pwd
@@ -144,11 +144,11 @@ for container_json in Dir["#{docker_dir}/*.json"]
     ENV['DOCKER_BUILDER_PASSWORD'],
     docker_tag,
     latest)
-end
 
-if Dir.exist?("#{build_dir}/defaults") and ENV['DEFAULTS_LABEL'] != nil
-  update_remote_defaults(ENV['DEFAULTS_LABEL'], docker_tag)
-else
-  puts "Cannot push to Defaults Repo. Defaults Directory or Label does not exist!"
+  if Dir.exist?("#{build_dir}/defaults") and ENV['DEFAULTS_LABEL'] != nil
+    update_remote_defaults(ENV['DEFAULTS_LABEL'], container, docker_tag)
+  else
+    puts "Cannot push to Defaults Repo. Defaults Directory or Label does not exist!"
+  end
 end
 
