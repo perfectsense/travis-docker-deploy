@@ -94,7 +94,7 @@ def update_remote_defaults(defaults_label, container, docker_tag)
   copy_local_defaults_to_remote(defaults_repo_name, defaults_label)
 
   Dir.chdir(defaults_repo_name)
-  system("git add #{container}; git commit -m \"Updating [ #{defaults_label} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin master")
+  system("git add #{defaults_label}; git commit -m \"Updating [ #{defaults_label} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin master")
 
   git_tag = "#{container}/#{docker_tag}"
   existing_tag = %x[git tag -l #{git_tag}]
