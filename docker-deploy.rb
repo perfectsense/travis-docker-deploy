@@ -86,7 +86,7 @@ def copy_local_defaults_to_remote(defaults_repo_name, defaults_label)
   FileUtils.cp_r 'defaults/.', remote_defaults_dir, :verbose => true
 end
 
-def update_remote_defaults(defaults_label, container, docker_tag)
+def update_remote_defaults(defaults_label, container, docker_tag, build_dir)
   defaults_repo = require_env_var('DEFAULTS_REPOSITORY')
   defaults_repo_name = calculate_repo_name(defaults_repo)
 
@@ -104,6 +104,9 @@ def update_remote_defaults(defaults_label, container, docker_tag)
   end
 
   system("git tag -a #{git_tag} -m \"Updating [ #{defaults_label} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin #{git_tag}")
+
+  Dir.chdir(build_dir)
+  FileUtils.remove_dir(defaults_repo_name, true)
 end
 
 build_dir = Dir.pwd
@@ -146,7 +149,7 @@ for container_json in Dir["#{docker_dir}/*.json"]
     latest)
 
   if Dir.exist?("#{build_dir}/defaults") and ENV['DEFAULTS_LABEL'] != nil
-    update_remote_defaults(ENV['DEFAULTS_LABEL'], container, docker_tag)
+    update_remote_defaults(ENV['DEFAULTS_LABEL'], container, docker_tag, build_dir)
   else
     puts "Cannot push to Defaults Repo. Defaults Directory or Label does not exist!"
   end
