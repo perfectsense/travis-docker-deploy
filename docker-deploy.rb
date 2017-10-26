@@ -83,7 +83,7 @@ def copy_local_defaults_to_remote(defaults_repo_name, defaults_label)
   end
 
   FileUtils.mkdir(remote_defaults_dir)
-  FileUtils.cp_r 'defaults/*', remote_defaults_dir, :verbose => true
+  FileUtils.cp_r 'defaults/.', remote_defaults_dir, :verbose => true
 end
 
 def update_remote_defaults(defaults_label, container, docker_tag)
