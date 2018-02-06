@@ -94,11 +94,14 @@ def update_remote_defaults(container, docker_tag, build_dir)
   for entry in Dir.entries("#{build_dir}/defaults")
     if entry != "." and entry != ".." and File.directory?("#{build_dir}/defaults/#{entry}")
       copy_local_defaults_to_remote(defaults_repo_name, entry)
+      Dir.chdir(defaults_repo_name)
+      system("git add #{entry}")
+      Dir.chdir(build_dir)
     end
   end
 
   Dir.chdir(defaults_repo_name)
-  system("git add #{defaults_label}; git commit -m \"Updating [ #{container} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin master")
+  system("git commit -m \"Updating [ #{container} ] defaults. Triggered by Docker build [ #{docker_tag} ]\"; git push origin master")
 
   git_tag = "#{container}/#{docker_tag}"
   existing_tag = %x[git tag -l #{git_tag}]
