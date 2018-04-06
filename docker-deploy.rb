@@ -130,9 +130,19 @@ elsif tag_type == 'increment_patch'
   latest = true
 end
 
+containers = []
 for container_json in Dir["#{docker_dir}/*.json"]
-  puts container_json
-  container = container_json.split('/')[-1].split('.')[0]
+  containers.push(container_json.split('/')[-1].split('.')[0])
+end
+
+docker_files = ENV['DOCKER_FILES']
+if docker_files != nil
+  containers.concat(docker_files.split(','))
+end
+
+system("docker login #{metadata['BASE_IMAGE_REGISTRY_HOST']} -u #{ENV['DOCKER_BUILDER_USER']} -p #{ENV['DOCKER_BUILDER_PASSWORD']}")
+
+for container in containers
   puts "Building [ #{container} ] Docker Image"
 
   Dir.chdir(docker_dir)
