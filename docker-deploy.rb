@@ -140,6 +140,8 @@ if docker_files != nil
   containers.concat(docker_files.split(','))
 end
 
+system("docker login #{metadata['BASE_IMAGE_REGISTRY_HOST']} -u #{ENV['DOCKER_BUILDER_USER']} -p #{ENV['DOCKER_BUILDER_PASSWORD']}")
+
 for container in containers
   puts "Building [ #{container} ] Docker Image"
 
